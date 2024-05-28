@@ -1,1 +1,93 @@
-"<!DOCTYPE html><html><head><title>My Website</title></head><body><h1>Hello, world!</h1></body></html>" 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量圖片加水印</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #output {
+            margin-top: 20px;
+            color: red;
+        }
+        canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>批量圖片加水印</h1>
+    <input type="file" id="fileInput" multiple accept="image/*">
+    <br><br>
+    <button onclick="processImages()">處理圖片並下載</button>
+    <div id="output"></div>
+    <canvas id="canvas"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+        async function processImages() {
+            const files = document.getElementById('fileInput').files;
+            const output = document.getElementById('output');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const zip = new JSZip();
+
+            if (files.length === 0) {
+                output.textContent = '請選擇至少一張圖片';
+                return;
+            }
+
+            output.textContent = '正在處理圖片，請稍候...';
+
+            try {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const img = await loadImage(file);
+
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    ctx.font = '30px Arial';
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fillText('水印', 10, img.height - 20);
+
+                    const blob = await canvasToBlob(canvas);
+                    zip.file(`image${i + 1}.png`, blob);
+                }
+
+                const zipContent = await zip.generateAsync({ type: 'blob' });
+                saveAs(zipContent, 'images_with_watermark.zip');
+                output.textContent = '圖片處理完成並已下載！';
+            } catch (error) {
+                output.textContent = `發生錯誤：${error.message}`;
+            }
+        }
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error('圖片加載失敗'));
+                    img.src = event.target.result;
+                };
+                reader.onerror = () => reject(new Error('文件讀取失敗'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function canvasToBlob(canvas) {
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => {
+                    resolve(blob);
+                }, 'image/png');
+            });
+        }
+    </script>
+</body>
+</html>
