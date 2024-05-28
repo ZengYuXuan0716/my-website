@@ -23,18 +23,15 @@
     <h1>批量圖片加水印</h1>
     <input type="file" id="fileInput" multiple accept="image/*">
     <br><br>
-    <button onclick="processImages()">處理圖片並下載</button>
+    <button onclick="processImages()">處理圖片並保存至相冊</button>
     <div id="output"></div>
     <canvas id="canvas"></canvas>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script>
         async function processImages() {
             const files = document.getElementById('fileInput').files;
             const output = document.getElementById('output');
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
-            const zip = new JSZip();
 
             if (files.length === 0) {
                 output.textContent = '請選擇至少一張圖片';
@@ -55,13 +52,14 @@
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
                     ctx.fillText('水印', 10, img.height - 20);
 
+                    // Convert canvas to blob
                     const blob = await canvasToBlob(canvas);
-                    zip.file(`image${i + 1}.png`, blob);
+
+                    // Save image to device album
+                    saveToAlbum(blob);
                 }
 
-                const zipContent = await zip.generateAsync({ type: 'blob' });
-                saveAs(zipContent, 'images_with_watermark.zip');
-                output.textContent = '圖片處理完成並已下載！';
+                output.textContent = '圖片處理完成！';
             } catch (error) {
                 output.textContent = `發生錯誤：${error.message}`;
             }
@@ -87,6 +85,15 @@
                     resolve(blob);
                 }, 'image/png');
             });
+        }
+
+        function saveToAlbum(blob) {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.click();
+            window.URL.revokeObjectURL(url);
         }
     </script>
 </body>
